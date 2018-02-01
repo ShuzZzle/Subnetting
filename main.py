@@ -1,4 +1,5 @@
 import tkinter as tk
+import ipaddress
 
 
 class SubNett0r:
@@ -62,14 +63,38 @@ class SubNett0r:
         tk.mainloop()
 
     def entry_callback(self, sv):
-        # print(sv.get())
-        self.sv2.set(self.get_cidr(self.sv3.get()))
+        try:
+            self.sv2.set(self.get_cidr(self.sv3.get()))
+            self.network_address.set("Netzwerkaddresse: " + self.bin_to_ip(self.get_network_addr(self.sv1.get(), self.sv3.get())))
+        except ValueError:
+            # Not going to add any validation so expect a lot of value  errors when user enters wrongful input
+            pass
 
 
     # Calculations
     def get_cidr(self, mask):
         if mask == '': return "N.A."
         return sum([bin(int(x)).count("1") for x in mask.split(".")])
+
+    def get_network_addr(self, ip, mask):
+        # Convert to Blocks of 8 Bits
+        mask = [bin(int(x)+256)[3:] for x in mask.split(".")]
+        ip = [bin(int(x)+256)[3:] for x in ip.split(".")]
+        print(mask)
+        print(ip)
+        result = []
+        for a, b in zip(mask, ip):
+            mask_8bit = int(a, 2)
+            ip_8bit = int(b, 2)
+            res = bin(mask_8bit & ip_8bit)[2:].zfill(8)
+            result.append(res)
+        return result
+
+    def bin_to_ip(self, binary):
+        print("RESULT")
+        print(binary)
+        binary = "".join(binary)
+        return str(ipaddress.ip_address(int(binary, 2)))
 
 
 if __name__ == '__main__':
