@@ -1,15 +1,15 @@
 import tkinter as tk
-import ipaddress
 import math
+
 
 class SubNett0r:
 
     def __init__(self):
         self.root = tk.Tk()
-        self.sv1 = None
-        self.sv2 = None
-        self.sv3 = None
-        self.sv4 = None
+        self.sv_ipaddr = None
+        self.sv_cidr = None
+        self.sv_subnetmask = None
+        self.sv_hosts = None
         self.inverse_subnetmask = None
         self.network_address = None
         self.broadcast = None
@@ -17,24 +17,26 @@ class SubNett0r:
         self.ip_range_end = None
         self.setup()
 
+    def __del__(self):
+        pass
+
     def setup(self):
-        self.sv1 = tk.StringVar()
-        self.sv2 = tk.StringVar()
-        self.sv3 = tk.StringVar()
-        self.sv4 = tk.StringVar()
+        self.sv_ipaddr = tk.StringVar()
+        self.sv_cidr = tk.StringVar()
+        self.sv_subnetmask = tk.StringVar()
+        self.sv_hosts = tk.StringVar()
         self.inverse_subnetmask = tk.StringVar()
         self.network_address = tk.StringVar()
         self.broadcast = tk.StringVar()
         self.ip_range_start = tk.StringVar()
         self.ip_range_end = tk.StringVar()
-        # self.sv1.trace("w", lambda ip_address, index, mode, sv1=self.sv1: self.entry_callback_sv1(sv1))
-        # self.sv2.trace("w", lambda cidr_suffix, index, mode, sv2=self.sv2: self.entry_callback_sv2(sv2))
-        # self.sv3.trace("w", lambda subnet, index, mode, sv3=self.sv3: self.entry_callback_sv3(sv3))
-        # self.sv4.trace("w", lambda amount_hosts, index, mode, sv4=self.sv4: self.entry_callback_sv4(sv4))
-        self.sv1.set("192.168.132.197")
-        # self.sv2.set("24")
-        self.sv3.set("255.255.255.0")
-        self.sv4.set("254")
+
+        # Default Values
+        self.sv_ipaddr.set("192.168.132.197")
+        self.sv_subnetmask.set("255.255.255.0")
+        self.sv_hosts.set("254")
+
+        # TK Labels
         tk.Label(self.root, text="IP-Addresse").grid(row=0)
         tk.Label(self.root, text="CIDR-Suffix").grid(row=1)
         tk.Label(self.root, text="Netzwerkmaske").grid(row=2)
@@ -45,14 +47,14 @@ class SubNett0r:
         tk.Label(self.root, text="HOST-IPs von: ").grid(row=7)
         tk.Label(self.root, text="bis: ").grid(row=8)
 
-        e1 = tk.Entry(self.root, textvariable=self.sv1)
-        e2 = tk.Entry(self.root, textvariable=self.sv2)
-        e3 = tk.Entry(self.root, textvariable=self.sv3)
-        e4 = tk.Entry(self.root, textvariable=self.sv4)
-        e1.bind('<Return>', (lambda _: self.entry_callback_sv1(e1)))
-        e2.bind('<Return>', (lambda _: self.entry_callback_sv2(e2)))
-        e3.bind('<Return>', (lambda _: self.entry_callback_sv3(e3)))
-        e4.bind('<Return>', (lambda _: self.entry_callback_sv4(e4)))
+        e1 = tk.Entry(self.root, textvariable=self.sv_ipaddr)
+        e2 = tk.Entry(self.root, textvariable=self.sv_cidr)
+        e3 = tk.Entry(self.root, textvariable=self.sv_subnetmask)
+        e4 = tk.Entry(self.root, textvariable=self.sv_hosts)
+        e1.bind('<Return>', (lambda _: self.callback_ipaddr(e1)))
+        e2.bind('<Return>', (lambda _: self.callback_cidr(e2)))
+        e3.bind('<Return>', (lambda _: self.callback_networkaddr(e3)))
+        e4.bind('<Return>', (lambda _: self.callback_host(e4)))
         inverse_entry = tk.Entry(self.root, textvariable=self.inverse_subnetmask)
         network_entry = tk.Entry(self.root, textvariable=self.network_address)
         broadcast_entry = tk.Entry(self.root, textvariable=self.broadcast)
@@ -77,72 +79,68 @@ class SubNett0r:
 
         tk.mainloop()
 
-    def entry_callback_sv1(self, sv):
-        print("IP Adresse")
+    def callback_ipaddr(self, sv):
         try:
-            self.sv2.set(self.get_cidr(self.sv3.get()))
+            self.sv_cidr.set(self.get_cidr(self.sv_subnetmask.get()))
             self.calculate_other_shit()
         except ValueError:
             pass
 
-    def entry_callback_sv2(self, sv):
-        print("CIDR Suffix")
+    def callback_cidr(self, sv):
         try:
             cidr = sv.get()
-            self.sv3.set(self.get_subnetmask_from_cidr(cidr))
-            self.sv4.set(self.get_total_hosts(self.sv3.get()))
+            self.sv_subnetmask.set(self.get_subnetmask_from_cidr(cidr))
+            self.sv_hosts.set(self.get_total_hosts(self.sv_subnetmask.get()))
             self.calculate_other_shit()
         except ValueError:
             pass
 
-    def entry_callback_sv3(self, sv):
-        print("Netzwerkmaske")
+    def callback_networkaddr(self, sv):
         try:
             mask = sv.get()
-            self.sv2.set(self.get_cidr(mask))
-            self.sv4.set(self.get_total_hosts(mask))
+            self.sv_cidr.set(self.get_cidr(mask))
+            self.sv_hosts.set(self.get_total_hosts(mask))
             self.calculate_other_shit()
         except ValueError:
             pass
 
-    def entry_callback_sv4(self, sv):
-        print("Host Callback :)")
+    def callback_host(self, sv):
         try:
-            # RECALCULATE THE FUCKING BROADCAST ADDR
             cidr = self.get_required_subnet_mask_length(sv.get())
-            self.sv2.set(cidr)
-            self.sv3.set(self.get_subnetmask_from_cidr(cidr))
-            self.sv4.set(self.get_total_hosts(self.sv3.get()))
+            self.sv_cidr.set(cidr)
+            self.sv_subnetmask.set(self.get_subnetmask_from_cidr(cidr))
+            self.sv_hosts.set(self.get_total_hosts(self.sv_subnetmask.get()))
             self.calculate_other_shit()
         except ValueError:
             pass
 
     def calculate_other_shit(self):
-        self.network_address.set(self.bin_to_ip(self.get_network_addr(self.sv1.get(), self.sv3.get())))
-        self.inverse_subnetmask.set(self.bin_to_ip(self.get_invert_mask(self.sv3.get())))
+        self.network_address.set(self.bin_to_ip(self.get_network_addr(self.sv_ipaddr.get(), self.sv_subnetmask.get())))
+        self.inverse_subnetmask.set(self.bin_to_ip(self.get_invert_mask(self.sv_subnetmask.get())))
         self.broadcast.set(self.bin_to_ip(self.get_broadcast_addr(self.network_address.get(),
                                                                   self.inverse_subnetmask.get())))
         self.ip_range_start.set(self.get_start_ip(self.network_address.get()))
         self.ip_range_end.set(self.get_end_ip(self.broadcast.get()))
 
-    # Calculations
-    def get_cidr(self, mask):
-        if mask == '': return "N.A."
+    @staticmethod
+    def get_cidr(mask):
         return sum([bin(int(x)).count("1") for x in mask.split(".")])
 
     def get_total_hosts(self, mask):
         return 2**(32 - self.get_cidr(mask)) - 2
 
-    def get_required_subnet_mask_length(self, amount):
+    @staticmethod
+    def get_required_subnet_mask_length(amount):
         # Add 2 since 2 IPS are reserved !! IMPORTANT
         length = math.ceil(math.log2(int(amount) + 2))
         return 32 - length
 
     def get_subnetmask_from_cidr(self, cidr):
-        str = '1' * int(cidr)
-        return self.bin_to_ip(str.ljust(32, '0'))
+        mask = '1' * int(cidr)
+        return self.bin_to_ip(mask.ljust(32, '0'))
 
-    def get_network_addr(self, ip, mask):
+    @staticmethod
+    def get_network_addr(ip, mask):
         # Convert to Blocks of 8 Bits
         mask = [bin(int(x)+256)[3:] for x in mask.split(".")]
         ip = [bin(int(x)+256)[3:] for x in ip.split(".")]
@@ -154,7 +152,8 @@ class SubNett0r:
             result.append(res)
         return result
 
-    def get_broadcast_addr(self, network_addr, invert_mask):
+    @staticmethod
+    def get_broadcast_addr(network_addr, invert_mask):
         # Convert to Blocks of 8 Bits
         network_addr = [bin(int(x)+256)[3:] for x in network_addr.split(".")]
         invert_mask = [bin(int(x)+256)[3:] for x in invert_mask.split(".")]
@@ -178,17 +177,16 @@ class SubNett0r:
         ip -= 1
         return self.dec_to_ip(ip)
 
-    def dec_to_ip(self, dec):
-        return str(ipaddress.ip_address(dec))
+    @staticmethod
+    def dec_to_ip(dec):
+        return '.'.join(map(lambda _: str(dec >> _ & 0xFF), [24, 16, 8, 0]))
 
     def bin_to_ip(self, binary):
         binary = "".join(binary)
-        return str(ipaddress.ip_address(int(binary, 2)))
+        return self.dec_to_ip(int(binary, 2))
 
-    def lazy_bin_to_ip(self, binary):
-        return str(ipaddress.IPv4Address("%d.%d.%d.%d" % (binary[0], binary[1], binary[2], binary[3])))
-
-    def get_invert_mask(self, mask):
+    @staticmethod
+    def get_invert_mask(mask):
         mask = [bin(int(x)+256)[3:] for x in mask.split(".")]
         tmp = ''.join(mask)
         result = bin((int(tmp, 2) ^ (2 ** (len(tmp) + 1) - 1)))[3:]
